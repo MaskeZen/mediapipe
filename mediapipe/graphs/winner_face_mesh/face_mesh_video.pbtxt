@@ -41,6 +41,12 @@ node {
   output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
 }
 
+# node {
+#   calculator: "ImagePropertiesCalculator"
+#   input_stream: "IMAGE:image"
+#   output_stream: "SIZE:size"
+# }
+
 # Subgraph that renders face-landmark annotation onto the input video.
 node {
   calculator: "FaceRendererCpu"

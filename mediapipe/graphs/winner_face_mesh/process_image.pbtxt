@@ -1,0 +1,24 @@
+# MediaPipe graph that performs face mesh on desktop with TensorFlow Lite
+# on CPU.
+
+input_side_packet: "input_image_path"
+input_side_packet: "output_image_path"
+
+# max_queue_size limits the number of packets enqueued on any input stream
+# by throttling inputs to the graph. This makes the graph only process one
+# frame per time.
+max_queue_size: 1
+
+# Decodes an input video file into images and a video header.
+node {
+  calculator: "OpenCvVideoDecoderCalculator"
+  input_side_packet: "INPUT_FILE_PATH:input_image_path"
+  output_stream: "VIDEO:input_image"
+  output_stream: "VIDEO_PRESTREAM:input_video_header"
+}
+
+node {
+  calculator: "ImagePropertiesCalculator"
+  input_stream: "IMAGE:input_image"
+  output_stream: "SIZE:size"
+}

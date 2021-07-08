@@ -24,6 +24,14 @@ cc_binary(
     ],
 )
 
+cc_binary(
+    name = "winner_face_mesh_image",
+    deps = [
+        "//mediapipe/examples/desktop/winner_face_mesh:simple_run_graph_main",
+        "//mediapipe/graphs/winner_face_mesh:process_image_calculators",
+    ],
+)
+
 cc_library(
     name = "simple_run_graph_main",
     srcs = ["simple_run_graph_main.cc"],

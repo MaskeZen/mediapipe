@@ -31,3 +31,11 @@ cc_library(
         "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
     ],
 )
+
+cc_library(
+    name = "process_image_calculators",
+    deps = [
+        "//mediapipe/calculators/video:opencv_video_decoder_calculator",
+        "//mediapipe/calculators/image:image_properties_calculator",
+    ]
+)
