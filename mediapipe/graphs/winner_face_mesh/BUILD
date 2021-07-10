@@ -38,5 +38,18 @@ cc_library(
         "//mediapipe/calculators/video:opencv_video_decoder_calculator",
         "//mediapipe/calculators/image:image_properties_calculator",
         "//mediapipe/calculators/winner_test:log_input_calculator",
+        "//mediapipe/modules/face_geometry:env_generator_calculator",
+        "//mediapipe/graphs/winner_face_mesh/subgraphs:single_face_geometry_from_landmarks_gpu",
+        # "//mediapipe/gpu:gpu_buffer_to_image_frame_calculator",
+        "//mediapipe/gpu:image_frame_to_gpu_buffer_calculator",
+    ]
+)
+
+cc_library(
+    name = "log_image_calculators",
+    deps = [
+        "//mediapipe/calculators/video:opencv_video_decoder_calculator",
+        "//mediapipe/calculators/image:image_properties_calculator",
+        "//mediapipe/calculators/winner_test:log_input_calculator",
     ]
 )
