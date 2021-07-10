@@ -22,3 +22,8 @@ node {
   input_stream: "IMAGE:input_image"
   output_stream: "SIZE:size"
 }
+
+node {
+  calculator: "LogInputCalculator"
+  input_stream: "SIZE:size"
+}

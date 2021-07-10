@@ -37,5 +37,6 @@ cc_library(
     deps = [
         "//mediapipe/calculators/video:opencv_video_decoder_calculator",
         "//mediapipe/calculators/image:image_properties_calculator",
+        "//mediapipe/calculators/winner_test:log_input_calculator",
     ]
 )
