@@ -19,8 +19,8 @@ from typing import NamedTuple
 
 import numpy as np
 
-from mediapipe.calculators.core import constant_side_packet_calculator_pb2
 # pylint: disable=unused-import
+from mediapipe.calculators.core import constant_side_packet_calculator_pb2
 from mediapipe.calculators.core import gate_calculator_pb2
 from mediapipe.calculators.core import split_vector_calculator_pb2
 from mediapipe.calculators.tensor import image_to_tensor_calculator_pb2
@@ -37,6 +37,9 @@ from mediapipe.calculators.util import rect_transformation_calculator_pb2
 from mediapipe.calculators.util import thresholding_calculator_pb2
 # pylint: enable=unused-import
 from mediapipe.python.solution_base import SolutionBase
+# pylint: disable=unused-import
+from mediapipe.python.solutions.hands_connections import HAND_CONNECTIONS
+# pylint: enable=unused-import
 
 
 class HandLandmark(enum.IntEnum):
@@ -64,30 +67,7 @@ class HandLandmark(enum.IntEnum):
   PINKY_TIP = 20
 
 
-BINARYPB_FILE_PATH = 'mediapipe/modules/hand_landmark/hand_landmark_tracking_cpu.binarypb'
-HAND_CONNECTIONS = frozenset([
-    (HandLandmark.WRIST, HandLandmark.THUMB_CMC),
-    (HandLandmark.THUMB_CMC, HandLandmark.THUMB_MCP),
-    (HandLandmark.THUMB_MCP, HandLandmark.THUMB_IP),
-    (HandLandmark.THUMB_IP, HandLandmark.THUMB_TIP),
-    (HandLandmark.WRIST, HandLandmark.INDEX_FINGER_MCP),
-    (HandLandmark.INDEX_FINGER_MCP, HandLandmark.INDEX_FINGER_PIP),
-    (HandLandmark.INDEX_FINGER_PIP, HandLandmark.INDEX_FINGER_DIP),
-    (HandLandmark.INDEX_FINGER_DIP, HandLandmark.INDEX_FINGER_TIP),
-    (HandLandmark.INDEX_FINGER_MCP, HandLandmark.MIDDLE_FINGER_MCP),
-    (HandLandmark.MIDDLE_FINGER_MCP, HandLandmark.MIDDLE_FINGER_PIP),
-    (HandLandmark.MIDDLE_FINGER_PIP, HandLandmark.MIDDLE_FINGER_DIP),
-    (HandLandmark.MIDDLE_FINGER_DIP, HandLandmark.MIDDLE_FINGER_TIP),
-    (HandLandmark.MIDDLE_FINGER_MCP, HandLandmark.RING_FINGER_MCP),
-    (HandLandmark.RING_FINGER_MCP, HandLandmark.RING_FINGER_PIP),
-    (HandLandmark.RING_FINGER_PIP, HandLandmark.RING_FINGER_DIP),
-    (HandLandmark.RING_FINGER_DIP, HandLandmark.RING_FINGER_TIP),
-    (HandLandmark.RING_FINGER_MCP, HandLandmark.PINKY_MCP),
-    (HandLandmark.WRIST, HandLandmark.PINKY_MCP),
-    (HandLandmark.PINKY_MCP, HandLandmark.PINKY_PIP),
-    (HandLandmark.PINKY_PIP, HandLandmark.PINKY_DIP),
-    (HandLandmark.PINKY_DIP, HandLandmark.PINKY_TIP)
-])
+_BINARYPB_FILE_PATH = 'mediapipe/modules/hand_landmark/hand_landmark_tracking_cpu.binarypb'
 
 
 class Hands(SolutionBase):
@@ -109,6 +89,7 @@ class Hands(SolutionBase):
   def __init__(self,
                static_image_mode=False,
                max_num_hands=2,
+               model_complexity=1,
                min_detection_confidence=0.5,
                min_tracking_confidence=0.5):
     """Initializes a MediaPipe Hand object.
@@ -119,6 +100,10 @@ class Hands(SolutionBase):
         https://solutions.mediapipe.dev/hands#static_image_mode.
       max_num_hands: Maximum number of hands to detect. See details in
         https://solutions.mediapipe.dev/hands#max_num_hands.
+      model_complexity: Complexity of the hand landmark model: 0 or 1.
+        Landmark accuracy as well as inference latency generally go up with the
+        model complexity. See details in
+        https://solutions.mediapipe.dev/hands#model_complexity.
       min_detection_confidence: Minimum confidence value ([0.0, 1.0]) for hand
         detection to be considered successful. See details in
         https://solutions.mediapipe.dev/hands#min_detection_confidence.
@@ -127,16 +112,13 @@ class Hands(SolutionBase):
         https://solutions.mediapipe.dev/hands#min_tracking_confidence.
     """
     super().__init__(
-        binary_graph_path=BINARYPB_FILE_PATH,
+        binary_graph_path=_BINARYPB_FILE_PATH,
         side_inputs={
+            'model_complexity': model_complexity,
             'num_hands': max_num_hands,
+            'use_prev_landmarks': not static_image_mode,
         },
         calculator_params={
-            'ConstantSidePacketCalculator.packet': [
-                constant_side_packet_calculator_pb2
-                .ConstantSidePacketCalculatorOptions.ConstantSidePacket(
-                    bool_value=not static_image_mode)
-            ],
             'palmdetectioncpu__TensorsToDetectionsCalculator.min_score_thresh':
                 min_detection_confidence,
             'handlandmarkcpu__ThresholdingCalculator.threshold':

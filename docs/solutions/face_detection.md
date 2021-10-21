@@ -45,6 +45,15 @@ section.
 
 Naming style and availability may differ slightly across platforms/languages.
 
+#### model_selection
+
+An integer index `0` or `1`. Use `0` to select a short-range model that works
+best for faces within 2 meters from the camera, and `1` for a full-range model
+best for faces within 5 meters. For the full-range option, a sparse model is
+used for its improved inference speed. Please refer to the
+[model cards](./models.md#face_detection) for details. Default to `0` if not
+specified.
+
 #### min_detection_confidence
 
 Minimum confidence value (`[0.0, 1.0]`) from the face detection model for the
@@ -68,10 +77,11 @@ normalized to `[0.0, 1.0]` by the image width and height respectively.
 
 Please first follow general [instructions](../getting_started/python.md) to
 install MediaPipe Python package, then learn more in the companion
-[Python Colab](#resources) and the following usage example.
+[Python Colab](#resources) and the usage example below.
 
 Supported configuration options:
 
+*   [model_selection](#model_selection)
 *   [min_detection_confidence](#min_detection_confidence)
 
 ```python
@@ -81,9 +91,10 @@ mp_face_detection = mp.solutions.face_detection
 mp_drawing = mp.solutions.drawing_utils
 
 # For static images:
+IMAGE_FILES = []
 with mp_face_detection.FaceDetection(
-    min_detection_confidence=0.5) as face_detection:
-  for idx, file in enumerate(file_list):
+    model_selection=1, min_detection_confidence=0.5) as face_detection:
+  for idx, file in enumerate(IMAGE_FILES):
     image = cv2.imread(file)
     # Convert the BGR image to RGB and process it with MediaPipe Face Detection.
     results = face_detection.process(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
@@ -102,7 +113,7 @@ with mp_face_detection.FaceDetection(
 # For webcam input:
 cap = cv2.VideoCapture(0)
 with mp_face_detection.FaceDetection(
-    min_detection_confidence=0.5) as face_detection:
+    model_selection=0, min_detection_confidence=0.5) as face_detection:
   while cap.isOpened():
     success, image = cap.read()
     if not success:
@@ -110,12 +121,10 @@ with mp_face_detection.FaceDetection(
       # If loading a video, use 'break' instead of 'continue'.
       continue
 
-    # Flip the image horizontally for a later selfie-view display, and convert
-    # the BGR image to RGB.
-    image = cv2.cvtColor(cv2.flip(image, 1), cv2.COLOR_BGR2RGB)
     # To improve performance, optionally mark the image as not writeable to
     # pass by reference.
     image.flags.writeable = False
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     results = face_detection.process(image)
 
     # Draw the face detection annotations on the image.
@@ -124,7 +133,8 @@ with mp_face_detection.FaceDetection(
     if results.detections:
       for detection in results.detections:
         mp_drawing.draw_detection(image, detection)
-    cv2.imshow('MediaPipe Face Detection', image)
+    # Flip the image horizontally for a selfie-view display.
+    cv2.imshow('MediaPipe Face Detection', cv2.flip(image, 1))
     if cv2.waitKey(5) & 0xFF == 27:
       break
 cap.release()
@@ -138,6 +148,7 @@ and the following usage example.
 
 Supported configuration options:
 
+*   [modelSelection](#model_selection)
 *   [minDetectionConfidence](#min_detection_confidence)
 
 ```html
@@ -188,6 +199,7 @@ const faceDetection = new FaceDetection({locateFile: (file) => {
   return `https://cdn.jsdelivr.net/npm/@mediapipe/face_detection@0.0/${file}`;
 }});
 faceDetection.setOptions({
+  modelSelection: 0,
   minDetectionConfidence: 0.5
 });
 faceDetection.onResults(onResults);
@@ -201,6 +213,194 @@ const camera = new Camera(videoElement, {
 });
 camera.start();
 </script>
+```
+
+### Android Solution API
+
+Please first follow general
+[instructions](../getting_started/android_solutions.md#integrate-mediapipe-android-solutions-api)
+to add MediaPipe Gradle dependencies, then try the Face Detection Solution API
+in the companion
+[example Android Studio project](https://github.com/google/mediapipe/tree/master/mediapipe/examples/android/solutions/facedetection)
+following
+[these instructions](../getting_started/android_solutions.md#build-solution-example-apps-in-android-studio)
+and learn more in the usage example below.
+
+*   [staticImageMode](#static_image_mode)
+*   [modelSelection](#model_selection)
+
+#### Camera Input
+
+```java
+// For camera input and result rendering with OpenGL.
+FaceDetectionOptions faceDetectionOptions =
+    FaceDetectionOptions.builder()
+        .setStaticImageMode(false)
+        .setModelSelection(0).build();
+FaceDetection faceDetection = new FaceDetection(this, faceDetectionOptions);
+faceDetection.setErrorListener(
+    (message, e) -> Log.e(TAG, "MediaPipe Face Detection error:" + message));
+
+// Initializes a new CameraInput instance and connects it to MediaPipe Face Detection Solution.
+CameraInput cameraInput = new CameraInput(this);
+cameraInput.setNewFrameListener(
+    textureFrame -> faceDetection.send(textureFrame));
+
+// Initializes a new GlSurfaceView with a ResultGlRenderer<FaceDetectionResult> instance
+// that provides the interfaces to run user-defined OpenGL rendering code.
+// See mediapipe/examples/android/solutions/facedetection/src/main/java/com/google/mediapipe/examples/facedetection/FaceDetectionResultGlRenderer.java
+// as an example.
+SolutionGlSurfaceView<FaceDetectionResult> glSurfaceView =
+    new SolutionGlSurfaceView<>(
+        this, faceDetection.getGlContext(), faceDetection.getGlMajorVersion());
+glSurfaceView.setSolutionResultRenderer(new FaceDetectionResultGlRenderer());
+glSurfaceView.setRenderInputImage(true);
+faceDetection.setResultListener(
+    faceDetectionResult -> {
+      RelativeKeypoint noseTip =
+          FaceDetection.getFaceKeypoint(result, 0, FaceKeypoint.NOSE_TIP);
+      Log.i(
+          TAG,
+          String.format(
+              "MediaPipe Face Detection nose tip normalized coordinates (value range: [0, 1]): x=%f, y=%f",
+              noseTip.getX(), noseTip.getY()));
+      // Request GL rendering.
+      glSurfaceView.setRenderData(faceDetectionResult);
+      glSurfaceView.requestRender();
+    });
+
+// The runnable to start camera after the GLSurfaceView is attached.
+glSurfaceView.post(
+    () ->
+        cameraInput.start(
+            this,
+            faceDetection.getGlContext(),
+            CameraInput.CameraFacing.FRONT,
+            glSurfaceView.getWidth(),
+            glSurfaceView.getHeight()));
+```
+
+#### Image Input
+
+```java
+// For reading images from gallery and drawing the output in an ImageView.
+FaceDetectionOptions faceDetectionOptions =
+    FaceDetectionOptions.builder()
+        .setStaticImageMode(true)
+        .setModelSelection(0).build();
+FaceDetection faceDetection = new FaceDetection(this, faceDetectionOptions);
+
+// Connects MediaPipe Face Detection Solution to the user-defined ImageView
+// instance that allows users to have the custom drawing of the output landmarks
+// on it. See mediapipe/examples/android/solutions/facedetection/src/main/java/com/google/mediapipe/examples/facedetection/FaceDetectionResultImageView.java
+// as an example.
+FaceDetectionResultImageView imageView = new FaceDetectionResultImageView(this);
+faceDetection.setResultListener(
+    faceDetectionResult -> {
+      int width = faceDetectionResult.inputBitmap().getWidth();
+      int height = faceDetectionResult.inputBitmap().getHeight();
+      RelativeKeypoint noseTip =
+          FaceDetection.getFaceKeypoint(result, 0, FaceKeypoint.NOSE_TIP);
+      Log.i(
+          TAG,
+          String.format(
+              "MediaPipe Face Detection nose tip coordinates (pixel values): x=%f, y=%f",
+              noseTip.getX() * width, noseTip.getY() * height));
+      // Request canvas drawing.
+      imageView.setFaceDetectionResult(faceDetectionResult);
+      runOnUiThread(() -> imageView.update());
+    });
+faceDetection.setErrorListener(
+    (message, e) -> Log.e(TAG, "MediaPipe Face Detection error:" + message));
+
+// ActivityResultLauncher to get an image from the gallery as Bitmap.
+ActivityResultLauncher<Intent> imageGetter =
+    registerForActivityResult(
+        new ActivityResultContracts.StartActivityForResult(),
+        result -> {
+          Intent resultIntent = result.getData();
+          if (resultIntent != null && result.getResultCode() == RESULT_OK) {
+            Bitmap bitmap = null;
+            try {
+              bitmap =
+                  MediaStore.Images.Media.getBitmap(
+                      this.getContentResolver(), resultIntent.getData());
+              // Please also rotate the Bitmap based on its orientation.
+            } catch (IOException e) {
+              Log.e(TAG, "Bitmap reading error:" + e);
+            }
+            if (bitmap != null) {
+              faceDetection.send(bitmap);
+            }
+          }
+        });
+Intent gallery = new Intent(
+    Intent.ACTION_PICK, MediaStore.Images.Media.INTERNAL_CONTENT_URI);
+imageGetter.launch(gallery);
+```
+
+#### Video Input
+
+```java
+// For video input and result rendering with OpenGL.
+FaceDetectionOptions faceDetectionOptions =
+    FaceDetectionOptions.builder()
+        .setStaticImageMode(false)
+        .setModelSelection(0).build();
+FaceDetection faceDetection = new FaceDetection(this, faceDetectionOptions);
+faceDetection.setErrorListener(
+    (message, e) -> Log.e(TAG, "MediaPipe Face Detection error:" + message));
+
+// Initializes a new VideoInput instance and connects it to MediaPipe Face Detection Solution.
+VideoInput videoInput = new VideoInput(this);
+videoInput.setNewFrameListener(
+    textureFrame -> faceDetection.send(textureFrame));
+
+// Initializes a new GlSurfaceView with a ResultGlRenderer<FaceDetectionResult> instance
+// that provides the interfaces to run user-defined OpenGL rendering code.
+// See mediapipe/examples/android/solutions/facedetection/src/main/java/com/google/mediapipe/examples/facedetection/FaceDetectionResultGlRenderer.java
+// as an example.
+SolutionGlSurfaceView<FaceDetectionResult> glSurfaceView =
+    new SolutionGlSurfaceView<>(
+        this, faceDetection.getGlContext(), faceDetection.getGlMajorVersion());
+glSurfaceView.setSolutionResultRenderer(new FaceDetectionResultGlRenderer());
+glSurfaceView.setRenderInputImage(true);
+
+faceDetection.setResultListener(
+    faceDetectionResult -> {
+      RelativeKeypoint noseTip =
+        FaceDetection.getFaceKeypoint(result, 0, FaceKeypoint.NOSE_TIP);
+      Log.i(
+          TAG,
+          String.format(
+              "MediaPipe Face Detection nose tip normalized coordinates (value range: [0, 1]): x=%f, y=%f",
+              noseTip.getX(), noseTip.getY()));
+      // Request GL rendering.
+      glSurfaceView.setRenderData(faceDetectionResult);
+      glSurfaceView.requestRender();
+    });
+
+ActivityResultLauncher<Intent> videoGetter =
+    registerForActivityResult(
+        new ActivityResultContracts.StartActivityForResult(),
+        result -> {
+          Intent resultIntent = result.getData();
+          if (resultIntent != null) {
+            if (result.getResultCode() == RESULT_OK) {
+              glSurfaceView.post(
+                  () ->
+                      videoInput.start(
+                          this,
+                          resultIntent.getData(),
+                          faceDetection.getGlContext(),
+                          glSurfaceView.getWidth(),
+                          glSurfaceView.getHeight()));
+            }
+          }
+        });
+Intent gallery =
+    new Intent(Intent.ACTION_PICK, MediaStore.Video.Media.INTERNAL_CONTENT_URI);
+videoGetter.launch(gallery);
 ```
 
 ## Example Apps
@@ -253,10 +453,6 @@ same configuration as the GPU pipeline, runs entirely on CPU.
         [`mediapipe/graphs/face_detection/face_detection_mobile_gpu.pbtxt`](https://github.com/google/mediapipe/tree/master/mediapipe/graphs/face_detection/face_detection_mobile_gpu.pbtxt)
     *   Target:
         [`mediapipe/examples/desktop/face_detection:face_detection_gpu`](https://github.com/google/mediapipe/tree/master/mediapipe/examples/desktop/face_detection/BUILD)
-
-### Web
-
-Please refer to [these instructions](../index.md#mediapipe-on-the-web).
 
 ### Coral
 
