@@ -1,0 +1,9 @@
+input_stream: "input_video"
+
+output_stream: "output_video"
+
+node {
+    calculator: "SimpleFlowCalculator"
+    input_stream: "IMAGE:input_video"
+    output_stream: "IMAGE:output_video"
+}

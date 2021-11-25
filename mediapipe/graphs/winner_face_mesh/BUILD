@@ -22,6 +22,13 @@ licenses(["notice"])
 package(default_visibility = ["//visibility:public"])
 
 cc_library(
+    name = "wnr_face_mesh_image",
+    deps = [
+        "//mediapipe/calculators/image:opencv_encoded_image_to_image_frame_calculator",
+    ],
+)
+
+cc_library(
     name = "desktop_calculators",
     deps = [
         "//mediapipe/calculators/core:constant_side_packet_calculator",

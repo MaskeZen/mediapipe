@@ -1,0 +1,29 @@
+# MediaPipe graph para obtener el pose (pitch, roll, yaw) de una cara
+# - Primer etapa input image y output image sin mucho
+# procesamiento más.
+
+# Raw image bytes. (std::string)
+input_stream: "input_image_bytes"
+
+# Image with all the detections rendered. (ImageFrame)
+output_stream: "output_image"
+
+# Converts a raw string with encoded image bytes into an ImageFrame object
+# via OpenCV so that it can be processed by downstream calculators.
+node {
+  calculator: "OpenCvEncodedImageToImageFrameCalculator"
+  input_stream: "input_image_bytes"
+#   output_stream: "input_image"
+  output_stream: "output_image"
+}
+
+# # Detects faces and corresponding landmarks.
+# node {
+#   calculator: "FaceLandmarkFrontCpu"
+#   input_stream: "IMAGE:input_image"
+#   input_side_packet: "NUM_FACES:num_faces"
+#   output_stream: "LANDMARKS:multi_face_landmarks"
+#   output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
+#   output_stream: "DETECTIONS:face_detections"
+#   output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
+# }

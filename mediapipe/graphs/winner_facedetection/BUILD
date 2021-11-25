@@ -11,10 +11,15 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+load(
+    "//mediapipe/framework/tool:mediapipe_graph.bzl",
+    "mediapipe_binary_graph",
+)
 
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
+
 
 cc_library(
     name = "mobile_calculators",
@@ -47,11 +52,6 @@ cc_library(
         "//mediapipe/calculators/util:detections_to_render_data_calculator",
         "//mediapipe/modules/face_detection:face_detection_front_gpu",
     ],
-)
-
-load(
-    "//mediapipe/framework/tool:mediapipe_graph.bzl",
-    "mediapipe_binary_graph",
 )
 
 mediapipe_binary_graph(
