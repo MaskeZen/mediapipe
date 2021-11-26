@@ -13,7 +13,20 @@ output_stream: "output_image"
 node {
   calculator: "OpenCvEncodedImageToImageFrameCalculator"
   input_stream: "input_image_bytes"
-#   output_stream: "input_image"
+  output_stream: "input_image"
+  # output_stream: "output_image"
+}
+
+node {
+  calculator: "ImagePropertiesCalculator"
+  input_stream: "IMAGE:input_image"
+  output_stream: "SIZE:image_size"
+}
+
+node {
+  calculator: "WnrImageProcess"
+  input_stream: "input_image"
+  input_stream: "image_size"
   output_stream: "output_image"
 }
 
