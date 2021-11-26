@@ -17,18 +17,26 @@ licenses(["notice"])
 package(default_visibility = ["//mediapipe/examples:__subpackages__"])
 
 cc_binary(
-    name = "winner_face_mesh_video",
+    name = "winner_face_mesh_image",
+    srcs = ["wnr_face_mesh_image.cc"],
     deps = [
-        "//mediapipe/examples/desktop/winner_face_mesh:simple_run_graph_main",
-        "//mediapipe/graphs/winner_face_mesh:desktop_calculators",
+        "//mediapipe/framework/port:opencv_highgui",
+        "//mediapipe/framework/port:opencv_imgproc",
+        "//mediapipe/framework/port:parse_text_proto",
+        "//mediapipe/framework/port:status",
+
+        "//mediapipe/graphs/winner_face_mesh:wnr_face_mesh_image",
+
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
     ],
 )
 
 cc_binary(
-    name = "winner_face_mesh_image",
+    name = "winner_face_mesh_video",
     deps = [
         "//mediapipe/examples/desktop/winner_face_mesh:simple_run_graph_main",
-        "//mediapipe/graphs/winner_face_mesh:process_image_calculators",
+        "//mediapipe/graphs/winner_face_mesh:desktop_calculators",
     ],
 )
 
