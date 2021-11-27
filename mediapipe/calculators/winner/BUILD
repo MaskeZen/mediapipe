@@ -17,12 +17,13 @@ licenses(["notice"])
 package(default_visibility = ["//mediapipe/examples:__subpackages__"])
 
 cc_library(
-    name = "log_input_calculator",
-    srcs = ["log_input_calculator.cc"],
+    name = "wnr_image_process",
+    srcs = ["wnr_image_process.cc"],
     visibility = ["//visibility:public"],
     deps = [
         "//mediapipe/framework/api2:node",
         "//mediapipe/framework:calculator_framework",
+        "//mediapipe/framework/formats:image_frame"
     ],
     alwayslink = 1,
 )

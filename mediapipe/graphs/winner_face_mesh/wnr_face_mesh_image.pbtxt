@@ -25,9 +25,9 @@ node {
 
 node {
   calculator: "WnrImageProcess"
-  input_stream: "input_image"
-  input_stream: "image_size"
-  output_stream: "output_image"
+  input_stream: "IMAGE:input_image"
+  input_stream: "SIZE:image_size"
+  output_stream: "IMAGE_OUT:output_image"
 }
 
 # # Detects faces and corresponding landmarks.

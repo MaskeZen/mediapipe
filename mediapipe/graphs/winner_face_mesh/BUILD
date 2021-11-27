@@ -25,6 +25,8 @@ cc_library(
     name = "wnr_face_mesh_image",
     deps = [
         "//mediapipe/calculators/image:opencv_encoded_image_to_image_frame_calculator",
+        "//mediapipe/calculators/image:image_properties_calculator",
+        "//mediapipe/calculators/winner:wnr_image_process"
     ],
 )
 
