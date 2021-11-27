@@ -26,7 +26,10 @@ cc_library(
     deps = [
         "//mediapipe/calculators/image:opencv_encoded_image_to_image_frame_calculator",
         "//mediapipe/calculators/image:image_properties_calculator",
-        "//mediapipe/calculators/winner:wnr_image_process"
+        "//mediapipe/calculators/winner:wnr_image_process",
+        "//mediapipe/calculators/core:constant_side_packet_calculator",
+        "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
+        "//mediapipe/graphs/face_mesh/subgraphs:face_renderer_cpu",
     ],
 )
 

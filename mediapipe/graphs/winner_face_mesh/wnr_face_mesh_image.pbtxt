@@ -8,6 +8,9 @@ input_stream: "input_image_bytes"
 # Image with all the detections rendered. (ImageFrame)
 output_stream: "output_image"
 
+# LandMarks de la cara detectada
+output_stream: "multi_face_landmarks"
+
 # Converts a raw string with encoded image bytes into an ImageFrame object
 # via OpenCV so that it can be processed by downstream calculators.
 node {
@@ -23,20 +26,45 @@ node {
   output_stream: "SIZE:image_size"
 }
 
+# ⚠️ Hay un problema en la imagen de salida en este nodo
+# investigar las diferencias entre como lo hago acá y el nodo "FaceRendererCpu"
 node {
   calculator: "WnrImageProcess"
   input_stream: "IMAGE:input_image"
   input_stream: "SIZE:image_size"
-  output_stream: "IMAGE_OUT:output_image"
+  output_stream: "IMAGE_OUT:output_image_face_landmark"
+}
+
+# Define cuantas caras detectar.
+node {
+  calculator: "ConstantSidePacketCalculator"
+  output_side_packet: "PACKET:0:num_faces"
+  node_options: {
+    [type.googleapis.com/mediapipe.ConstantSidePacketCalculatorOptions]: {
+      packet { int_value: 1 }
+    }
+  }
 }
 
 # # Detects faces and corresponding landmarks.
-# node {
-#   calculator: "FaceLandmarkFrontCpu"
-#   input_stream: "IMAGE:input_image"
-#   input_side_packet: "NUM_FACES:num_faces"
-#   output_stream: "LANDMARKS:multi_face_landmarks"
-#   output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
-#   output_stream: "DETECTIONS:face_detections"
-#   output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
-# }
+node {
+  calculator: "FaceLandmarkFrontCpu"
+  input_stream: "IMAGE:input_image"
+  input_side_packet: "NUM_FACES:num_faces"
+  output_stream: "LANDMARKS:multi_face_landmarks"
+  output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
+  output_stream: "DETECTIONS:face_detections"
+  output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
+}
+
+# Experimental ---------------------------------------------------------
+# Subgraph que renderiza las faceLandmark en la imagen.
+# No debería ser necesario, lo uso para tener una idea de lo que se está procesando.
+node {
+  calculator: "FaceRendererCpu"
+  input_stream: "IMAGE:input_image"
+  input_stream: "LANDMARKS:multi_face_landmarks"
+  input_stream: "NORM_RECTS:face_rects_from_landmarks"
+  input_stream: "DETECTIONS:face_detections"
+  output_stream: "IMAGE:output_image"
+}
