@@ -57,6 +57,12 @@ node {
   output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
 }
 
+# ========================================================================
+# TODO:
+# Obtener multi_face_landmarks y procesar en nuestro nodo
+# ========================================================================
+
+
 # Experimental ---------------------------------------------------------
 # Subgraph que renderiza las faceLandmark en la imagen.
 # No debería ser necesario, lo uso para tener una idea de lo que se está procesando.
