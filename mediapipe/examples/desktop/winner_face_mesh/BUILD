@@ -17,6 +17,22 @@ licenses(["notice"])
 package(default_visibility = ["//mediapipe/examples:__subpackages__"])
 
 cc_binary(
+    name = "wnr_face_mesh_image_gpu",
+    srcs = ["wnr_face_mesh_image_gpu.cc"],
+    deps = [
+        "//mediapipe/framework/port:opencv_highgui",
+        "//mediapipe/framework/port:opencv_imgproc",
+        "//mediapipe/framework/port:parse_text_proto",
+        "//mediapipe/framework/port:status",
+
+        "//mediapipe/graphs/winner_face_mesh:wnr_face_mesh_image",
+
+        "@com_google_absl//absl/flags:flag",
+        "@com_google_absl//absl/flags:parse",
+    ],
+)
+
+cc_binary(
     name = "winner_face_mesh_image",
     srcs = ["wnr_face_mesh_image.cc"],
     deps = [
