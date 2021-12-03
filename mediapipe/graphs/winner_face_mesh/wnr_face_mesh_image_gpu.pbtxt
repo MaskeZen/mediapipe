@@ -1,0 +1,48 @@
+# MediaPipe graph para obtener el pose (pitch, roll, yaw) de una cara
+# - Primer etapa input image y output image sin mucho
+# procesamiento más.
+
+# Raw image bytes. (std::string)
+input_stream: "input_image"
+
+# Image with all the detections rendered. (ImageFrame)
+output_stream: "output_image"
+
+# LandMarks de la cara detectada
+output_stream: "multi_face_landmarks"
+
+
+# Defines side packets for further use in the graph.
+node {
+  calculator: "ConstantSidePacketCalculator"
+  output_side_packet: "PACKET:0:num_faces"
+  output_side_packet: "PACKET:1:with_attention"
+  node_options: {
+    [type.googleapis.com/mediapipe.ConstantSidePacketCalculatorOptions]: {
+      packet { int_value: 1 }
+      packet { bool_value: true }
+    }
+  }
+}
+
+# Subgraph that detects faces and corresponding landmarks.
+node {
+  calculator: "FaceLandmarkFrontGpu"
+  input_stream: "IMAGE:input_image"
+  input_side_packet: "NUM_FACES:num_faces"
+  input_side_packet: "WITH_ATTENTION:with_attention"
+  output_stream: "LANDMARKS:multi_face_landmarks"
+  output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
+  output_stream: "DETECTIONS:face_detections"
+  output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
+}
+
+# Subgraph that renders face-landmark annotation onto the input image.
+node {
+  calculator: "FaceRendererGpu"
+  input_stream: "IMAGE:input_image"
+  input_stream: "LANDMARKS:multi_face_landmarks"
+  input_stream: "NORM_RECTS:face_rects_from_landmarks"
+  input_stream: "DETECTIONS:face_detections"
+  output_stream: "IMAGE:output_image"
+}

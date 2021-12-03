@@ -25,10 +25,22 @@ cc_binary(
         "//mediapipe/framework/port:parse_text_proto",
         "//mediapipe/framework/port:status",
 
+
+        "//mediapipe/framework:calculator_framework",
+        # "//mediapipe/framework:calculator_runner",
+        "//mediapipe/framework/deps:file_path",
+        "//mediapipe/framework/formats:image_frame_opencv",
+        "//mediapipe/framework/port:file_helpers",
+        # "//mediapipe/framework/port:gtest_main",
+        "//mediapipe/framework/port:opencv_imgcodecs",
+
         "//mediapipe/graphs/winner_face_mesh:wnr_face_mesh_image",
 
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+
+        # TEST ONLY :D :(
+        "//mediapipe/graphs/face_mesh:desktop_live_gpu_calculators"
     ],
 )
 

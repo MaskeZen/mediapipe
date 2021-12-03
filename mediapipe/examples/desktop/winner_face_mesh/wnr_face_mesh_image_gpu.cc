@@ -43,11 +43,14 @@
 #include "mediapipe/framework/port/status_builder.h"
 #include "mediapipe/framework/deps/status_macros.h"
 
-constexpr char kInputStream[] = "input_image_bytes";
+constexpr char kInputStream[] = "input_image";
 constexpr char kOutputImageStream[] = "output_image";
+constexpr char kOutputFaceLandmarks[] = "multi_face_landmarks";
 constexpr char kWindowName[] = "WinnerFaceMesh";
-constexpr char kCalculatorGraphConfigFile[] =
-    "mediapipe/graphs/winner_face_mesh/wnr_face_mesh_image.pbtxt";
+ constexpr char kCalculatorGraphConfigFile[] =
+     "mediapipe/graphs/winner_face_mesh/wnr_face_mesh_image_gpu.pbtxt";
+// constexpr char kCalculatorGraphConfigFile[] =
+//     "mediapipe/graphs/face_mesh/face_mesh_desktop_live_gpu.pbtxt";
 constexpr float kMicrosPerSecond = 1e6;
 
 ABSL_FLAG(std::string, input_image_path, "",
@@ -89,39 +92,41 @@ absl::Status RunMPPGraph() {
   gpu_helper.InitializeForTest(graph.GetGpuResources().get());
 
   LOG(INFO) << "Cargando la imagen.";
-  ASSIGN_OR_RETURN(const std::string raw_image,
+  ASSIGN_OR_RETURN(const std::string& raw_image,
                    ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
 
     LOG(INFO) << "Iniciando calculator graph.";
   ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller poller,
                    graph.AddOutputStreamPoller(kOutputImageStream));
+  ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller pollerLandMarks,
+                   graph.AddOutputStreamPoller(kOutputFaceLandmarks));
   MP_RETURN_IF_ERROR(graph.StartRun({}));
 
-  const std::vector<char> contents_vector(*raw_image.begin(), *raw_image.end());
+  const std::vector<char> contents_vector(raw_image.begin(), raw_image.end());
   cv::Mat decoded_mat;
   decoded_mat = cv::imdecode(contents_vector, cv::IMREAD_UNCHANGED);
   
-  // ImageFormat::Format image_format = ImageFormat::UNKNOWN;
+  mediapipe::ImageFormat::Format image_format = mediapipe::ImageFormat::UNKNOWN;
   cv::Mat output_mat;
-  // switch (decoded_mat.channels()) {
-  //   case 1:
-  //     image_format = ImageFormat::GRAY8;
-  //     output_mat = decoded_mat;
-  //     break;
-  //   case 3:
-  //     image_format = ImageFormat::SRGB;
-  //     cv::cvtColor(decoded_mat, output_mat, cv::COLOR_BGR2RGB);
-  //     break;
-  //   case 4:
-  //     image_format = ImageFormat::SRGBA;
-  //     cv::cvtColor(decoded_mat, output_mat, cv::COLOR_BGR2RGBA);
-  //     break;
-  //   default:
-  //     return mediapipe::FailedPreconditionErrorBuilder(MEDIAPIPE_LOC)
-  //            << "Unsupported number of channels: " << decoded_mat.channels();
-  // }
+  switch (decoded_mat.channels()) {
+    case 1:
+      image_format = mediapipe::ImageFormat::GRAY8;
+      output_mat = decoded_mat;
+      break;
+    case 3:
+      image_format = mediapipe::ImageFormat::SRGB;
+      cv::cvtColor(decoded_mat, output_mat, cv::COLOR_BGR2RGB);
+      break;
+    case 4:
+      image_format = mediapipe::ImageFormat::SRGBA;
+      cv::cvtColor(decoded_mat, output_mat, cv::COLOR_BGR2RGBA);
+      break;
+    default:
+      return mediapipe::FailedPreconditionErrorBuilder(MEDIAPIPE_LOC)
+             << "Unsupported number of channels: " << decoded_mat.channels();
+  }
   std::unique_ptr<mediapipe::ImageFrame> input_frame = absl::make_unique<mediapipe::ImageFrame>(
-      cv::COLOR_BGR2RGBA, decoded_mat.size().width, decoded_mat.size().height,
+      image_format, decoded_mat.size().width, decoded_mat.size().height,
       mediapipe::ImageFrame::kGlDefaultAlignmentBoundary);
   output_mat.copyTo(mediapipe::formats::MatView(input_frame.get()));
 
@@ -146,10 +151,14 @@ absl::Status RunMPPGraph() {
 
   // Get the graph result packet, or stop if that fails.
     mediapipe::Packet packet;
+    LOG(INFO) << "poller.QueueSize()" << poller.QueueSize();
+    LOG(INFO) << "pollerLandMarkspoller.QueueSize()" << pollerLandMarks.QueueSize();
     if (!poller.Next(&packet)) {
       return absl::UnknownError(
           "Falló el obtener el paquete desde el output stream.");
     }
+
+
     std::unique_ptr<mediapipe::ImageFrame> output_frame;
 
     // Convert GpuBuffer to ImageFrame.
@@ -172,16 +181,16 @@ absl::Status RunMPPGraph() {
         }));
 
     // Convert back to opencv for display or saving.
-    cv::Mat output_frame_mat = mediapipe::formats::MatView(output_frame.get());
-    if (output_frame_mat.channels() == 4)
-      cv::cvtColor(output_frame_mat, output_frame_mat, cv::COLOR_RGBA2BGR);
-    else
-      cv::cvtColor(output_frame_mat, output_frame_mat, cv::COLOR_RGB2BGR);
+    // cv::Mat output_frame_mat = mediapipe::formats::MatView(output_frame.get());
+    // if (output_frame_mat.channels() == 4)
+    //   cv::cvtColor(output_frame_mat, output_frame_mat, cv::COLOR_RGBA2BGR);
+    // else
+    //   cv::cvtColor(output_frame_mat, output_frame_mat, cv::COLOR_RGB2BGR);
 
     // auto& output_frame = output_image_packet.Get<mediapipe::ImageFrame>();
 
     // Convert back to opencv for display or saving.
-    cv::Mat output_frame_mat = mediapipe::formats::MatView(&output_frame);
+    cv::Mat output_frame_mat = mediapipe::formats::MatView(output_frame.get());
     cv::cvtColor(output_frame_mat, output_frame_mat, cv::COLOR_RGB2BGR);
     const bool save_image = !absl::GetFlag(FLAGS_output_image_path).empty();
     if (save_image) {
