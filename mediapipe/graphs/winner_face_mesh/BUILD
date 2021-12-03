@@ -14,12 +14,28 @@
 
 load(
     "//mediapipe/framework/tool:mediapipe_graph.bzl",
-    "mediapipe_binary_graph",
+    "mediapipe_binary_graph"
 )
 
 licenses(["notice"])
 
 package(default_visibility = ["//visibility:public"])
+
+cc_library(
+    name = "wnr_face_mesh_image_gpu",
+    deps = [
+        "//mediapipe/calculators/image:opencv_encoded_image_to_image_frame_calculator",
+        "//mediapipe/calculators/image:image_properties_calculator",
+        "//mediapipe/calculators/winner:wnr_image_process",
+        "//mediapipe/calculators/core:constant_side_packet_calculator",
+        "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
+        "//mediapipe/graphs/face_mesh/subgraphs:face_renderer_cpu",
+
+        # "//mediapipe/calculators/core:flow_limiter_calculator",
+        "//mediapipe/graphs/face_mesh/subgraphs:face_renderer_gpu",
+        "//mediapipe/modules/face_landmark:face_landmark_front_gpu",
+    ],
+)
 
 cc_library(
     name = "wnr_face_mesh_image",
