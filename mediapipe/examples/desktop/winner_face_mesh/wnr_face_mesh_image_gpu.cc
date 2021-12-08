@@ -47,8 +47,8 @@ constexpr char kInputStream[] = "input_image";
 constexpr char kOutputImageStream[] = "output_image";
 constexpr char kOutputFaceLandmarks[] = "multi_face_landmarks";
 constexpr char kWindowName[] = "WinnerFaceMesh";
- constexpr char kCalculatorGraphConfigFile[] =
-     "mediapipe/graphs/winner_face_mesh/wnr_face_mesh_image_gpu.pbtxt";
+constexpr char kCalculatorGraphConfigFile[] =
+    "mediapipe/graphs/winner_face_mesh/wnr_face_mesh_image_gpu.pbtxt";
 // constexpr char kCalculatorGraphConfigFile[] =
 //     "mediapipe/graphs/face_mesh/face_mesh_desktop_live_gpu.pbtxt";
 constexpr float kMicrosPerSecond = 1e6;

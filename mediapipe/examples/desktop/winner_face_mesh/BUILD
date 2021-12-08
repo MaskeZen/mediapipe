@@ -39,7 +39,11 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
 
+<<<<<<< HEAD
         # TEST ONLY :D :(
+=======
+        # TEST ONLY :D
+>>>>>>> 821061a9de3f3a9cf0bc4d377dce8f54ecfb5cfd
         "//mediapipe/graphs/face_mesh:desktop_live_gpu_calculators"
     ],
 )
