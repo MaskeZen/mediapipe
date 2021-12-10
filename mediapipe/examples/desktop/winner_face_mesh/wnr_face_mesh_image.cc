@@ -21,6 +21,7 @@
 #include "absl/flags/parse.h"
 #include "mediapipe/framework/calculator_framework.h"
 #include "mediapipe/framework/formats/image_frame.h"
+#include "mediapipe/framework/formats/matrix_data.pb.h"
 #include "mediapipe/framework/formats/image_frame_opencv.h"
 #include "mediapipe/framework/port/canonical_errors.h"
 #include "mediapipe/framework/port/file_helpers.h"
@@ -29,12 +30,16 @@
 // #include "mediapipe/framework/port/opencv_video_inc.h"
 #include "mediapipe/framework/port/parse_text_proto.h"
 #include "mediapipe/framework/port/status.h"
+#include "mediapipe/modules/face_geometry/libs/geometry_pipeline.h"
 
 constexpr char kInputStream[] = "input_image_bytes";
 constexpr char kOutputImageStream[] = "output_image";
+constexpr char kOutputFaceGeometry[] = "multi_face_geometry";
+
+
 constexpr char kWindowName[] = "WinnerFaceMesh";
 constexpr char kCalculatorGraphConfigFile[] =
-    "mediapipe/graphs/winner_face_mesh/wnr_face_mesh_image.pbtxt";
+    "mediapipe/graphs/winner_face_mesh/wnr_face_mesh_image_v2.pbtxt";
 constexpr float kMicrosPerSecond = 1e6;
 
 ABSL_FLAG(std::string, input_image_path, "",
@@ -52,12 +57,61 @@ absl::StatusOr<std::string> ReadFileToString(const std::string& file_path) {
   return contents;
 }
 
+// Chequea si es una rotationmatrix válida.
+bool isRotationMatrix(cv::Mat &R)
+{
+  cv::Mat Rt;
+  transpose(R, Rt);
+  cv::Mat shouldBeIdentity = Rt * R;
+  cv::Mat I = cv::Mat::eye(3, 3, shouldBeIdentity.type());
+
+  bool esRM = norm(I, shouldBeIdentity) < 1e-6;
+  if (esRM == false)
+    LOG(INFO) << "No es una rotation matrix.";
+  else
+    LOG(INFO) << "Es una rotation matrix.";
+
+  return esRM;
+}
+
+// Calcula rotation matrix a euler angles
+// https://learnopencv.com/rotation-matrix-to-euler-angles/
+cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
+{
+  assert(isRotationMatrix(R));
+
+  float sy = sqrt(R.at<double>(0, 0) * R.at<double>(0, 0) + R.at<double>(1, 0) * R.at<double>(1, 0));
+
+  bool singular = sy < 1e-6; // If
+
+  float x, y, z;
+  if (!singular)
+  {
+    x = atan2(R.at<double>(2, 1), R.at<double>(2, 2));
+    y = atan2(-R.at<double>(2, 0), sy);
+    z = atan2(R.at<double>(1, 0), R.at<double>(0, 0));
+  }
+  else
+  {
+    x = atan2(-R.at<double>(1, 2), R.at<double>(1, 1));
+    y = atan2(-R.at<double>(2, 0), sy);
+    z = 0;
+  }
+
+  LOG(INFO) << "x: " << x << " y: " << y << " z: " << z;
+
+  return cv::Vec3f(x, y, z);
+}
+
 absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph) {
   LOG(INFO) << "Cargando la imagen.";
   ASSIGN_OR_RETURN(const std::string raw_image,
                    ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
 
   LOG(INFO) << "Iniciando calculator graph.";
+  ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_face_geometry_poller,
+                   graph->AddOutputStreamPoller(kOutputFaceGeometry));
+
   ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_image_poller,
                    graph->AddOutputStreamPoller(kOutputImageStream));
   MP_RETURN_IF_ERROR(graph->StartRun({}));
@@ -71,6 +125,71 @@ absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph) {
                         mediapipe::Timestamp(fake_timestamp_us))));
 
   // Get the graph result packets, or stop if that fails.
+mediapipe::Packet output_face_geometry_packet;
+  if (!output_face_geometry_poller.Next(&output_face_geometry_packet)) {
+    return absl::UnknownError(
+        "Falló el obtener el paquete desde el output stream 'multi_face_geometry'.");
+  }
+  LOG(INFO) << "Se intentará obtener el FaceGeometry";
+  auto& face_geometry_vector = output_face_geometry_packet.Get<std::vector<mediapipe::face_geometry::FaceGeometry>>();
+  auto& face_geometry = face_geometry_vector[0];
+  LOG(INFO) << "FaceGeometry OK!";
+  LOG(INFO) << "Se intentará obtener el MatrixData";
+  const mediapipe::MatrixData& pose_transform_matrix = face_geometry.pose_transform_matrix();
+  LOG(INFO) << "MatrixData OK!";
+  LOG(INFO) << "MatrixData rows(): " << pose_transform_matrix.rows();
+  LOG(INFO) << "MatrixData cols(): " << pose_transform_matrix.cols();
+  LOG(INFO) << "MatrixData data(0): " << pose_transform_matrix.packed_data(0);
+  LOG(INFO) << "MatrixData data(1): " << pose_transform_matrix.packed_data(1);
+  LOG(INFO) << "MatrixData data(2): " << pose_transform_matrix.packed_data(2);
+  LOG(INFO) << "MatrixData data(3): " << pose_transform_matrix.packed_data(3);
+  LOG(INFO) << "MatrixData data(4): " << pose_transform_matrix.packed_data(4);
+  LOG(INFO) << "MatrixData data(5): " << pose_transform_matrix.packed_data(5);
+  LOG(INFO) << "MatrixData data(6): " << pose_transform_matrix.packed_data(6);
+  LOG(INFO) << "MatrixData data(7): " << pose_transform_matrix.packed_data(7);
+  LOG(INFO) << "MatrixData data(8): " << pose_transform_matrix.packed_data(8);
+  LOG(INFO) << "MatrixData data(9): " << pose_transform_matrix.packed_data(9);
+  LOG(INFO) << "MatrixData data(10): " << pose_transform_matrix.packed_data(10);
+  LOG(INFO) << "MatrixData data(11): " << pose_transform_matrix.packed_data(11);
+  LOG(INFO) << "MatrixData data(12): " << pose_transform_matrix.packed_data(12);
+  LOG(INFO) << "MatrixData data(13): " << pose_transform_matrix.packed_data(13);
+  LOG(INFO) << "MatrixData data(14): " << pose_transform_matrix.packed_data(14);
+  LOG(INFO) << "MatrixData data(15): " << pose_transform_matrix.packed_data(15);
+
+  // pose_transform_matrix to cv::Mat
+  cv::Mat pose_transform_matrix_cv(3, 3, CV_32F);
+  for (int col = 0; col < 4; col++) {
+    if (col == 3) {
+      continue;
+    }
+    for (int row = 0; row < 4; row++) {
+      if (row == 3) {
+        continue;
+      }
+      LOG(INFO) << "Col: " << col << "Row: " << row << "indice: " << (col*4+row) << " valor: " << pose_transform_matrix.packed_data(col*4+row);
+      pose_transform_matrix_cv.at<float>(col, row) = pose_transform_matrix.packed_data(col * 4 + row);
+    }    
+  }
+
+  cv::Vec3f eulerAngles = rotationMatrixToEulerAngles(pose_transform_matrix_cv);
+  // LOG(INFO) << "EulerAngles: " << eulerAngles;
+
+  // transformation matrix to 
+
+  LOG(INFO) << "pose_transform_matrix_cv.rows: " << pose_transform_matrix_cv.rows;
+  // pt_matrix = [
+    // 0.5567780137062073, 0.034023914486169815, 0.8299639821052551, 0, 
+    // -0.011918997392058372, 0.9993847608566284, -0.03297339752316475, 0, 
+    // -0.8305754661560059, 0.008466490544378757, 0.5568410754203796, 0, 
+    // -1.418548345565796, 6.790719509124756, -39.25355529785156, 1
+    // ]
+
+  // get top-left 3x3 matrix from pose_transform_matrix ?????
+  // cv::Mat pose_transform_matrix_cv(*(pose_transform_matrix.packed_data().data()), 3, 3, CV_32F);
+  // // log shape of pose_transform_matrix_cv == 0 :(
+  // LOG(INFO) << "pose_transform_matrix_cv.rows: " << pose_transform_matrix_cv.rows;
+
+
   mediapipe::Packet output_image_packet;
   if (!output_image_poller.Next(&output_image_packet)) {
     return absl::UnknownError(

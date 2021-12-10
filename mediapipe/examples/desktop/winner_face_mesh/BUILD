@@ -39,12 +39,8 @@ cc_binary(
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
 
-<<<<<<< HEAD
         # TEST ONLY :D :(
-=======
-        # TEST ONLY :D
->>>>>>> 821061a9de3f3a9cf0bc4d377dce8f54ecfb5cfd
-        "//mediapipe/graphs/face_mesh:desktop_live_gpu_calculators"
+        "//mediapipe/graphs/face_mesh:desktop_live_gpu_calculators",
     ],
 )
 
@@ -56,9 +52,8 @@ cc_binary(
         "//mediapipe/framework/port:opencv_imgproc",
         "//mediapipe/framework/port:parse_text_proto",
         "//mediapipe/framework/port:status",
-
         "//mediapipe/graphs/winner_face_mesh:wnr_face_mesh_image",
-
+        # "//mediapipe/graphs/winner_face_mesh:wnr_face_mesh_image_v2",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
     ],

@@ -46,6 +46,10 @@ cc_library(
         "//mediapipe/calculators/core:constant_side_packet_calculator",
         "//mediapipe/modules/face_landmark:face_landmark_front_cpu",
         "//mediapipe/graphs/face_mesh/subgraphs:face_renderer_cpu",
+        # Subgraph para obtener el face geometry
+        "//mediapipe/modules/face_geometry:face_geometry_from_landmarks",
+        # Calculator de environment
+        "//mediapipe/modules/face_geometry:env_generator_calculator",
     ],
 )
 

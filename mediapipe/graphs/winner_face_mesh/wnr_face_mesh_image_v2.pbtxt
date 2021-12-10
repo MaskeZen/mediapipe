@@ -1,0 +1,100 @@
+# MediaPipe graph para obtener el pose (pitch, roll, yaw) de una cara
+# - Primer etapa input image y output image sin mucho
+# procesamiento más.
+
+# Raw image bytes. (std::string)
+input_stream: "input_image_bytes"
+
+# Image with all the detections rendered. (ImageFrame)
+output_stream: "output_image"
+
+# LandMarks de la cara detectada
+output_stream: "multi_face_landmarks"
+
+# Converts a raw string with encoded image bytes into an ImageFrame object
+# via OpenCV so that it can be processed by downstream calculators.
+node {
+  calculator: "OpenCvEncodedImageToImageFrameCalculator"
+  input_stream: "input_image_bytes"
+  output_stream: "input_image"
+  # output_stream: "output_image"
+}
+
+node {
+  calculator: "ImagePropertiesCalculator"
+  input_stream: "IMAGE:input_image"
+  output_stream: "SIZE:image_size"
+}
+
+# ⚠️ Hay un problema en la imagen de salida en este nodo
+# investigar las diferencias entre como lo hago acá y el nodo "FaceRendererCpu"
+node {
+  calculator: "WnrImageProcess"
+  input_stream: "IMAGE:input_image"
+  input_stream: "SIZE:image_size"
+  output_stream: "IMAGE_OUT:output_image_face_landmark"
+}
+
+# Define cuantas caras detectar.
+node {
+  calculator: "ConstantSidePacketCalculator"
+  output_side_packet: "PACKET:0:num_faces"
+  node_options: {
+    [type.googleapis.com/mediapipe.ConstantSidePacketCalculatorOptions]: {
+      packet { int_value: 1 }
+    }
+  }
+}
+
+# # Detects faces and corresponding landmarks.
+node {
+  calculator: "FaceLandmarkFrontCpu"
+  input_stream: "IMAGE:input_image"
+  input_side_packet: "NUM_FACES:num_faces"
+  output_stream: "LANDMARKS:multi_face_landmarks"
+  output_stream: "ROIS_FROM_LANDMARKS:face_rects_from_landmarks"
+  output_stream: "DETECTIONS:face_detections"
+  output_stream: "ROIS_FROM_DETECTIONS:face_rects_from_detections"
+}
+
+# Generates an environment that describes the current virtual scene.
+node {
+  calculator: "FaceGeometryEnvGeneratorCalculator"
+  output_side_packet: "ENVIRONMENT:environment"
+  node_options: {
+    [type.googleapis.com/mediapipe.FaceGeometryEnvGeneratorCalculatorOptions] {
+      environment: {
+        origin_point_location: TOP_LEFT_CORNER
+        perspective_camera: {
+          vertical_fov_degrees: 63.0  # 63 degrees
+          near: 1.0  # 1cm
+          far: 1000.0  # 10m
+        }
+      }
+    }
+  }
+}
+
+node {
+  calculator: "FaceGeometryFromLandmarks"
+  input_stream: "IMAGE_SIZE:image_size"
+  input_stream: "MULTI_FACE_LANDMARKS:multi_face_landmarks"
+  input_side_packet: "ENVIRONMENT:environment"
+  output_stream: "MULTI_FACE_GEOMETRY:multi_face_geometry"
+}
+# ========================================================================
+# TODO:
+# Obtener multi_face_landmarks y procesar en nuestro nodo
+# ========================================================================
+
+# Experimental ---------------------------------------------------------
+# Subgraph que renderiza las faceLandmark en la imagen.
+# No debería ser necesario, lo uso para tener una idea de lo que se está procesando.
+node {
+  calculator: "FaceRendererCpu"
+  input_stream: "IMAGE:input_image"
+  input_stream: "LANDMARKS:multi_face_landmarks"
+  input_stream: "NORM_RECTS:face_rects_from_landmarks"
+  input_stream: "DETECTIONS:face_detections"
+  output_stream: "IMAGE:output_image"
+}
