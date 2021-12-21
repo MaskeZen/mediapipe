@@ -94,18 +94,18 @@ ABSL_FLAG(std::string, output_image_path, "",
 namespace {
 
   void printEugerAnglesResult(cv::Vec3f eulerAngles, bool convertToDegrees = true) {
-    float x = eulerAngles[0];
-    float y = eulerAngles[1];
-    float z = eulerAngles[2];
-    LOG(INFO) << "getEulerAngles" << "x: " << x << " y: " << y << " z: " << z;
+    float pitch = eulerAngles[0];
+    float yaw = eulerAngles[1];
+    float roll = eulerAngles[2];
+    LOG(INFO) << "getEulerAngles" << "x: " << pitch << " y: " << yaw << " z: " << roll;
     
     if (convertToDegrees) {
-      x = x * 180 / M_PI;
-      y = y * 180 / M_PI;
-      z = z * 180 / M_PI;
+      pitch = pitch * 180 / M_PI;
+      yaw = yaw * 180 / M_PI;
+      roll = roll * 180 / M_PI;
     }
 
-    LOG(INFO) << "Yaw: " << x << " Pitch: " << y << " Roll: " << z;
+    LOG(INFO) << " Pitch: " << pitch << " Yaw: " << yaw << " Roll: " << roll;
   }
 
 absl::StatusOr<std::string> ReadFileToString(const std::string& file_path) {
@@ -136,8 +136,8 @@ bool isRotationMatrix(cv::Mat &R)
 // https://learnopencv.com/rotation-matrix-to-euler-angles/
 cv::Vec3f rotationMatrixToEulerAngles(cv::Mat &R)
 {
-  // assert(isRotationMatrix(R));
-  isRotationMatrix(R);
+  assert(isRotationMatrix(R));
+  // isRotationMatrix(R);
 
   float sy = sqrt(R.at<float>(0, 0) * R.at<float>(0, 0) + R.at<float>(1, 0) * R.at<float>(1, 0));
   // float sy = sqrt(R.at<double>(2, 1) * R.at<double>(2, 1) + R.at<double>(2, 2) * R.at<double>(2, 2));
@@ -219,18 +219,19 @@ mediapipe::Packet output_face_geometry_packet;
   // pose_transform_matrix to cv::Mat
   // cv::Mat rotationMatrix(3, 3, 0);
   cv::Mat rotationMatrix = cv::Mat_<float>(3, 3);
-  for (int row = 0; row < 4; row++) {
-    if (row == 3) {
+  for (int column = 0; column < 4; column++) {
+    if (column == 3) {
       break;
     }
-    for (int col = 0; col < 4; col++) {
-      if (col == 3) {
+    for (int row = 0; row < 4; row++) {
+      if (row == 3) {
         break;
       }
-      float value = pose_transform_matrix.packed_data(row * 4 + col);
-      // LOG(INFO) << "Col: " << col << "Row: " << row << " valor: " << value;
-      rotationMatrix.at<float>(row, col) = value;
-      // rotationMatrix.row(row * 4) = value;
+      float value = pose_transform_matrix.packed_data(column * 4 + row);
+      // LOG(INFO) << "Col: " << row << "Row: " << column << " valor: " << value;
+      // Invierto column por row para que el valor de la matriz quede en la forma correcta.
+      rotationMatrix.at<float>(column, row) = value;
+      // rotationMatrix.column(column * 4) = value;
     }    
   }
 
