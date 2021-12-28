@@ -123,10 +123,9 @@ bool isRotationMatrix(cv::Mat &R)
   cv::Mat I = cv::Mat::eye(3, 3, shouldBeIdentity.type());
 
   bool esRM = norm(I, shouldBeIdentity) < 1e-6;
-  if (esRM == false)
+  if (esRM == false) {
     LOG(INFO) << "xxxxxxxxxxxxx No es una rotation matrix.";
-  else
-    // LOG(INFO) << "xxxxxxxxxxxxx Es una rotation matrix.";
+  }
 
   return esRM;
 }

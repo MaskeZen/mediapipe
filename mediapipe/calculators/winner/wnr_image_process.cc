@@ -42,8 +42,8 @@ namespace mediapipe {
         const std::pair<int, int> image_size =
           cc->Inputs().Tag(kImageSizeTag).Get<std::pair<int, int>>();
 
-        std::cout << "first " << image_size.first << std::endl;// >> image_size.first;
-        std::cout << "second " << image_size.second << std::endl;// >> image_size.second;
+        LOG(INFO) << "first " << image_size.first << std::endl;// >> image_size.first;
+        LOG(INFO) << "second " << image_size.second << std::endl;// >> image_size.second;
 
         const auto& image =
           cc->Inputs().Tag(kImageTag).Get<ImageFrame>();

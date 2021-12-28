@@ -44,10 +44,20 @@ cc_binary(
     ],
 )
 
+cc_library(
+    name = "wnr_daemon",
+    srcs = ["wnr_daemon.cc"],
+    hdrs = ["wnr_daemon.h"],
+    deps = [
+        "//mediapipe/framework/port:logging",
+    ]
+)
+
 cc_binary(
     name = "winner_face_mesh_image",
     srcs = ["wnr_face_mesh_image.cc"],
     deps = [
+        ":wnr_daemon",
         "//mediapipe/framework/port:opencv_highgui",
         "//mediapipe/framework/port:opencv_imgproc",
         "//mediapipe/framework/port:parse_text_proto",
