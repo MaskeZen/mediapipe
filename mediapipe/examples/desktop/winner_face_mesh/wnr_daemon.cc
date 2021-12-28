@@ -3,7 +3,7 @@
 
 #include "mediapipe/framework/port/logging.h"
 
-namespace {
+namespace winnerPy {
 
   WnrDaemon::WnrDaemon() {
       m_isRunning = true;
@@ -26,7 +26,7 @@ namespace {
   }
 
   void WnrDaemon::signalHandler(int signal) {
-      LOG(INFO) << "Interrup signal number [", signal, "] recived.";
+      LOG(INFO) << "Interrup signal number [" << signal << "] recived.";
       switch (signal) {
           case SIGINT:
           case SIGTERM: {

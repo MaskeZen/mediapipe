@@ -1,10 +1,7 @@
-#ifndef WNR_DAEMON_HPP_
-#define WNR_DAEMON_HPP_
-
 #include <csignal>
 #include <functional>
 
-namespace
+namespace winnerPy
 {
     class WnrDaemon
     {
@@ -33,5 +30,3 @@ namespace
         static void signalHandler(int signal);
     };
 }
-
-#endif // WNR_DAEMON_HPP_

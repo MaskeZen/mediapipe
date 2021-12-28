@@ -31,6 +31,8 @@
 #include "mediapipe/framework/port/parse_text_proto.h"
 #include "mediapipe/framework/port/status.h"
 #include "mediapipe/modules/face_geometry/libs/geometry_pipeline.h"
+#include "wnr_daemon.h"
+#include <thread>
 
 #include <Eigen/Geometry>
 
@@ -309,17 +311,33 @@ absl::Status RunMPPGraph() {
   }
 }
 
+void reload() {
+    LOG(INFO) << "Se recarga el demonio.";
+}
 }  // namespace
 
+
+
 int main(int argc, char** argv) {
+  
   google::InitGoogleLogging(argv[0]);
   absl::ParseCommandLine(argc, argv);
-  absl::Status run_status = RunMPPGraph();
-  if (!run_status.ok()) {
-    LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
-    return EXIT_FAILURE;
-  } else {
-    // LOG(INFO) << "¡¡¡Éxito!!!";
+
+  winnerPy::WnrDaemon& daemon = winnerPy::WnrDaemon::instance();
+  daemon.setReloadFunction(reload);
+
+  while (daemon.IsRunning())
+  {  
+    absl::Status run_status = RunMPPGraph();
+    if (!run_status.ok()) {
+      LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
+      // return EXIT_FAILURE;
+    } else {
+      LOG(INFO) << "¡¡¡Éxito!!!";
+    }
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
   }
+    
   return EXIT_SUCCESS;
 }
