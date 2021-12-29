@@ -1,6 +1,5 @@
 namespace winnerPy
 {
-
   const int IMG_WIDTH = 512;
   const int IMG_HEIGHT = 512;
   const int IMG_CHANNELS = 3;

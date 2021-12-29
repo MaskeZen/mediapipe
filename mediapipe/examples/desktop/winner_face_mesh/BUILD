@@ -53,11 +53,17 @@ cc_library(
     ]
 )
 
+cc_library(
+    name = "wnr_msg_exchange",
+    hdrs = ["wnr_msg_exchange.h"]
+)
+
 cc_binary(
     name = "winner_face_mesh_image",
     srcs = ["wnr_face_mesh_image.cc"],
     deps = [
         ":wnr_daemon",
+        ":wnr_msg_exchange",
         "//mediapipe/framework/port:opencv_highgui",
         "//mediapipe/framework/port:opencv_imgproc",
         "//mediapipe/framework/port:parse_text_proto",

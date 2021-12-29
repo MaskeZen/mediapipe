@@ -38,6 +38,7 @@
 #include <sys/ipc.h>
 // shared memory
 #include <sys/shm.h>
+#include "wnr_msg_exchange.h"
 // -----------------
 
 #include <Eigen/Geometry>
@@ -345,18 +346,39 @@ int main(int argc, char **argv)
 
   winnerPy::WnrDaemon &daemon = winnerPy::WnrDaemon::instance();
   daemon.setReloadFunction(reload);
+  int last_msg_id = 0;
+  int shmid = shmget(winnerPy::IMG_SHM_KEY, sizeof(winnerPy::datos_imagen),0666|IPC_CREAT);
 
   while (daemon.IsRunning())
   {
-    absl::Status run_status = RunMPPGraph();
-    if (!run_status.ok())
-    {
-      LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
-      // return EXIT_FAILURE;
-    }
-    else
-    {
-      LOG(INFO) << "¡¡¡Éxito!!!";
+    // Se lee de la memoria compartida
+		winnerPy::datos_imagen *datos = (winnerPy::datos_imagen*) shmat(shmid,(void*)0,0);
+		if (datos == (void*)-1) {
+			LOG(ERROR) << "No se pudo obtener la memoria compartida." << std::endl;
+		 	//return 1;
+      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+      continue;
+		}
+
+    if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
+			last_msg_id = datos->msg_id;
+			try {
+        absl::Status run_status = RunMPPGraph();
+        if (!run_status.ok())
+        {
+          LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
+          // return EXIT_FAILURE;
+        }
+        else
+        {
+          LOG(INFO) << "¡¡¡Éxito!!!";
+        }
+				
+			} catch  (const std::exception& e) {
+				LOG(ERROR) << e.what();
+			}
+		} else {
+      LOG(INFO) << "No hay nuevos mensajes.";
     }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
