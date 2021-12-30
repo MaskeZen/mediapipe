@@ -1,10 +1,12 @@
+#include <iostream>
+
 namespace winnerPy
 {
   const int IMG_WIDTH = 512;
   const int IMG_HEIGHT = 512;
   const int IMG_CHANNELS = 3;
   const int IMG_SIZE = IMG_WIDTH * IMG_HEIGHT * IMG_CHANNELS;
-  const int IMG_SHM_KEY = 411367;
+  const int IMG_SHM_KEY = 411370;
   int last_msg_id = 0;
 
   const int IMG_OUT_WIDTH = 112;
@@ -22,6 +24,7 @@ namespace winnerPy
     float roll;
     float detection_certainty;
     unsigned char imagen[IMG_SIZE];
+    std::string imagen_string;
   };
 
 }

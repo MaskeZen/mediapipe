@@ -80,7 +80,7 @@
 //     }
 // }
 
-constexpr char kInputStream[] = "input_image_bytes";
+constexpr char kInputStream[] = "input_image";
 constexpr char kOutputImageStream[] = "output_image";
 constexpr char kOutputFaceGeometry[] = "multi_face_geometry";
 
@@ -173,10 +173,10 @@ namespace
     return cv::Vec3f(x, y, z);
   }
 
-  absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph)
+  absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph, cv::Mat rgb_image)
   {
-    ASSIGN_OR_RETURN(const std::string raw_image,
-                     ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
+    // ASSIGN_OR_RETURN(const std::string raw_image,
+    //                  ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
 
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_face_geometry_poller,
                      graph->AddOutputStreamPoller(kOutputFaceGeometry));
@@ -189,9 +189,22 @@ namespace
     const size_t fake_timestamp_us = (double)cv::getTickCount() /
                                      (double)cv::getTickFrequency() *
                                      kMicrosPerSecond;
+
+    std::unique_ptr<mediapipe::ImageFrame> input_image_frame = absl::make_unique<mediapipe::ImageFrame>(
+      mediapipe::ImageFormat::SRGB,
+      rgb_image.size().width,
+      rgb_image.size().height,
+      mediapipe::ImageFrame::kGlDefaultAlignmentBoundary
+    );
+
+    rgb_image.copyTo(mediapipe::formats::MatView(input_image_frame.get()));
+
     MP_RETURN_IF_ERROR(graph->AddPacketToInputStream(
-        kInputStream, mediapipe::MakePacket<std::string>(raw_image).At(
-                          mediapipe::Timestamp(fake_timestamp_us))));
+        kInputStream, 
+        mediapipe::MakePacket<std::unique_ptr<mediapipe::ImageFrame>>(input_image_frame.release())
+          .At(mediapipe::Timestamp(fake_timestamp_us))
+      )
+    );
 
     // Get the graph result packets, or stop if that fails.
     mediapipe::Packet output_face_geometry_packet;
@@ -298,11 +311,11 @@ namespace
     }
 
     // LOG(INFO) << "Finalizando...";
-    MP_RETURN_IF_ERROR(graph->CloseInputStream(kInputStream));
+    // MP_RETURN_IF_ERROR(graph->CloseInputStream(kInputStream));
     return graph->WaitUntilDone();
   }
 
-  absl::Status RunMPPGraph()
+  absl::Status RunMPPGraph(cv::Mat imagen)
   {
     // Donde se lee la configuracion del graph
     std::string calculator_graph_config_contents;
@@ -323,7 +336,8 @@ namespace
     const bool load_image = !absl::GetFlag(FLAGS_input_image_path).empty();
     if (load_image)
     {
-      return ProcessImage(std::move(graph));
+      LOG(INFO) << "Se procesará la imagen...";
+      return ProcessImage(std::move(graph), imagen);
     }
     else
     {
@@ -334,6 +348,11 @@ namespace
   void reload()
   {
     LOG(INFO) << "Se recarga el demonio.";
+  }
+
+  void daemonSleep(int miliseconds = 5000) {
+    LOG(INFO) << "Se duerme el demonio.";
+    std::this_thread::sleep_for(std::chrono::milliseconds(miliseconds));
   }
 
 } // namespace
@@ -356,22 +375,32 @@ int main(int argc, char **argv)
 		if (datos == (void*)-1) {
 			LOG(ERROR) << "No se pudo obtener la memoria compartida." << std::endl;
 		 	//return 1;
-      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+      daemonSleep();
       continue;
 		}
 
     if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
 			last_msg_id = datos->msg_id;
+      cv::Mat rgb_image = cv::Mat(winnerPy::IMG_HEIGHT, winnerPy::IMG_WIDTH, CV_8UC3, &(datos->imagen[0]));
+
 			try {
-        absl::Status run_status = RunMPPGraph();
+        LOG(INFO) << "==========================================================";
+        LOG(INFO) << "Tamaño de la imagen: " << rgb_image.cols << "x" << rgb_image.rows << std::endl;
+        LOG(INFO) << "Tipo de la imagen: " << rgb_image.type() << std::endl;
+        LOG(INFO) << "Tamaño de la imagen: " << rgb_image.size() << std::endl;
+        LOG(INFO) << "Tamaño de la imagen rgb_image.cols*rgb_image.rows*rgb_image.channels(): " << rgb_image.cols*rgb_image.rows*rgb_image.channels() << std::endl;
+
+        absl::Status run_status = RunMPPGraph(rgb_image);
         if (!run_status.ok())
         {
           LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
+          LOG(ERROR) << "==========================================================";
           // return EXIT_FAILURE;
         }
         else
         {
           LOG(INFO) << "¡¡¡Éxito!!!";
+          LOG(INFO) << "==========================================================";
         }
 				
 			} catch  (const std::exception& e) {
@@ -381,7 +410,7 @@ int main(int argc, char **argv)
       LOG(INFO) << "No hay nuevos mensajes.";
     }
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    daemonSleep();
   }
 
   return EXIT_SUCCESS;

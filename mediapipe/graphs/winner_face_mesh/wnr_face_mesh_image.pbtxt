@@ -3,7 +3,10 @@
 # procesamiento más.
 
 # Raw image bytes. (std::string)
-input_stream: "input_image_bytes"
+# input_stream: "input_image_bytes"
+
+# ImageFrame from openCv Mat
+input_stream: "input_image"
 
 # Image with all the detections rendered. (ImageFrame)
 output_stream: "output_image"
@@ -13,12 +16,12 @@ output_stream: "multi_face_landmarks"
 
 # Converts a raw string with encoded image bytes into an ImageFrame object
 # via OpenCV so that it can be processed by downstream calculators.
-node {
-  calculator: "OpenCvEncodedImageToImageFrameCalculator"
-  input_stream: "input_image_bytes"
-  output_stream: "input_image"
-  # output_stream: "output_image"
-}
+# node {
+#   calculator: "OpenCvEncodedImageToImageFrameCalculator"
+#   input_stream: "input_image_bytes"
+#   output_stream: "input_image"
+#   # output_stream: "output_image"
+# }
 
 node {
   calculator: "ImagePropertiesCalculator"
