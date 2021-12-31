@@ -76,7 +76,10 @@ class ImagePropertiesCalculator : public Node {
   absl::Status Process(CalculatorContext* cc) override {
     std::pair<int, int> size;
 
+    LOG(INFO) << "Procesando imagen en ImagePropertiesCalculator.";
+
     if (kIn(cc).IsConnected()) {
+      LOG(INFO) << "kIn is Connected.";
       kIn(cc).Visit(
           [&size](const mediapipe::Image& value) {
             size.first = value.width();
@@ -88,12 +91,16 @@ class ImagePropertiesCalculator : public Node {
           });
     }
     if (kInCpu(cc).IsConnected()) {
+      LOG(INFO) << "kInCpu is Connected.";
+
       const auto& image = *kInCpu(cc);
       size.first = image.Width();
       size.second = image.Height();
     }
 #if !MEDIAPIPE_DISABLE_GPU
     if (kInGpu(cc).IsConnected()) {
+      LOG(INFO) << "kInGpu is Connected.";
+
       const auto& image = *kInGpu(cc);
       size.first = image.width();
       size.second = image.height();

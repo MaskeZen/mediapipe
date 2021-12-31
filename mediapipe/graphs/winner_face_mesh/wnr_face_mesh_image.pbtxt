@@ -31,12 +31,12 @@ node {
 
 # ⚠️ Hay un problema en la imagen de salida en este nodo
 # investigar las diferencias entre como lo hago acá y el nodo "FaceRendererCpu"
-node {
-  calculator: "WnrImageProcess"
-  input_stream: "IMAGE:input_image"
-  input_stream: "SIZE:image_size"
-  output_stream: "IMAGE_OUT:output_image_face_landmark"
-}
+# node {
+#   calculator: "WnrImageProcess"
+#   input_stream: "IMAGE:input_image"
+#   input_stream: "SIZE:image_size"
+#   output_stream: "IMAGE_OUT:output_image_face_landmark"
+# }
 
 # Define cuantas caras detectar.
 node {

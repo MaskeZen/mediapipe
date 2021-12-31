@@ -186,9 +186,17 @@ namespace
     MP_RETURN_IF_ERROR(graph->StartRun({}));
 
     // Se envía el packet dentro del graph.
-    const size_t fake_timestamp_us = (double)cv::getTickCount() /
+    const size_t fake_timestamp = (double)cv::getTickCount() /
                                      (double)cv::getTickFrequency() *
                                      kMicrosPerSecond;
+
+    mediapipe::Timestamp input_timestamp = mediapipe::Timestamp(fake_timestamp);
+    cv::Mat output_mat;
+    cv::cvtColor(rgb_image, output_mat, cv::COLOR_BGR2RGB);
+
+    LOG(INFO) << "xxxxxxxxxxxxx Enviando imagen.";
+    LOG(INFO) << "rgb_image.size().width " << rgb_image.size().width;
+    LOG(INFO) << "rgb_image.size().height " << rgb_image.size().height;
 
     std::unique_ptr<mediapipe::ImageFrame> input_image_frame = absl::make_unique<mediapipe::ImageFrame>(
       mediapipe::ImageFormat::SRGB,
@@ -197,15 +205,14 @@ namespace
       mediapipe::ImageFrame::kGlDefaultAlignmentBoundary
     );
 
-    rgb_image.copyTo(mediapipe::formats::MatView(input_image_frame.get()));
+    output_mat.copyTo(mediapipe::formats::MatView(input_image_frame.get()));
 
-    MP_RETURN_IF_ERROR(graph->AddPacketToInputStream(
-        kInputStream, 
-        mediapipe::MakePacket<std::unique_ptr<mediapipe::ImageFrame>>(input_image_frame.release())
-          .At(mediapipe::Timestamp(fake_timestamp_us))
-      )
-    );
+    mediapipe::Packet packet = mediapipe::Adopt(input_image_frame.release()).At(input_timestamp);
 
+    LOG(INFO) << "Se agregará el paquete al input stream " <<  kInputStream << "...";
+    MP_RETURN_IF_ERROR(graph->AddPacketToInputStream(kInputStream, packet));
+
+    LOG(INFO) << "Se espera el resultado de output_face_geometry_packet" <<  kInputStream << "...";
     // Get the graph result packets, or stop if that fails.
     mediapipe::Packet output_face_geometry_packet;
     if (!output_face_geometry_poller.Next(&output_face_geometry_packet))
