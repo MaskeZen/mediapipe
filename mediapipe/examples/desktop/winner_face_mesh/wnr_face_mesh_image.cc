@@ -207,6 +207,9 @@ namespace
 
     output_mat.copyTo(mediapipe::formats::MatView(input_image_frame.get()));
 
+    // cv::imshow("output_mat", output_mat);
+    // cv::waitKey(0);
+
     mediapipe::Packet packet = mediapipe::Adopt(input_image_frame.release()).At(input_timestamp);
 
     LOG(INFO) << "Se agregará el paquete al input stream " <<  kInputStream << "...";
@@ -397,10 +400,14 @@ int main(int argc, char **argv)
         LOG(INFO) << "Tamaño de la imagen: " << rgb_image.size() << std::endl;
         LOG(INFO) << "Tamaño de la imagen rgb_image.cols*rgb_image.rows*rgb_image.channels(): " << rgb_image.cols*rgb_image.rows*rgb_image.channels() << std::endl;
 
+        cv::imshow("imagen recibida", rgb_image);
+        cv::waitKey(0);
+
         absl::Status run_status = RunMPPGraph(rgb_image);
         if (!run_status.ok())
         {
           LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
+          LOG(ERROR) << run_status.ToString();
           LOG(ERROR) << "==========================================================";
           // return EXIT_FAILURE;
         }

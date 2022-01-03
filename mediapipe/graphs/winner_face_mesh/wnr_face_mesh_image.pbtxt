@@ -23,11 +23,11 @@ output_stream: "multi_face_landmarks"
 #   # output_stream: "output_image"
 # }
 
-node {
-  calculator: "ImagePropertiesCalculator"
-  input_stream: "IMAGE:input_image"
-  output_stream: "SIZE:image_size"
-}
+# node {
+#   calculator: "ImagePropertiesCalculator"
+#   input_stream: "IMAGE:input_image"
+#   output_stream: "SIZE:image_size"
+# }
 
 # ⚠️ Hay un problema en la imagen de salida en este nodo
 # investigar las diferencias entre como lo hago acá y el nodo "FaceRendererCpu"
