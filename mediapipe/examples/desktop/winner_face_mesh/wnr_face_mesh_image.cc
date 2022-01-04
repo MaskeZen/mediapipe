@@ -39,6 +39,9 @@
 // shared memory
 #include <sys/shm.h>
 #include "wnr_msg_exchange.h"
+#include <stdio.h>
+#include <string>
+#include <cstring>
 // -----------------
 
 #include <Eigen/Geometry>
@@ -123,6 +126,12 @@ namespace
     MP_RETURN_IF_ERROR(mediapipe::file::GetContents(file_path, &contents));
     return contents;
   }
+  
+  absl::StatusOr<std::string> ReturnString(std::string packet_image)
+  {
+    std::string contents = packet_image;
+    return contents;
+  }
 
   // Chequea si es una rotationmatrix válida.
   bool isRotationMatrix(cv::Mat &R)
@@ -173,10 +182,11 @@ namespace
     return cv::Vec3f(x, y, z);
   }
 
-  absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph)
+  absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph, std::string packet_image)
   {
+    LOG(INFO) << "Se inicia el procesamiento de la imagen.";
     ASSIGN_OR_RETURN(const std::string raw_image,
-                     ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
+                      ReturnString(packet_image));
 
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_face_geometry_poller,
                      graph->AddOutputStreamPoller(kOutputFaceGeometry));
@@ -184,6 +194,8 @@ namespace
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_image_poller,
                      graph->AddOutputStreamPoller(kOutputImageStream));
     MP_RETURN_IF_ERROR(graph->StartRun({}));
+
+    // LOG(INFO) << "xxxxxxxxxxxxx raw_image:" << raw_image;
 
     // Se envía el packet dentro del graph.
     const size_t fake_timestamp_us = (double)cv::getTickCount() /
@@ -302,7 +314,7 @@ namespace
     return graph->WaitUntilDone();
   }
 
-  absl::Status RunMPPGraph()
+  absl::Status RunMPPGraph(std::string raw_image)
   {
     // Donde se lee la configuracion del graph
     std::string calculator_graph_config_contents;
@@ -320,15 +332,7 @@ namespace
         absl::make_unique<mediapipe::CalculatorGraph>();
     MP_RETURN_IF_ERROR(graph->Initialize(config));
 
-    const bool load_image = !absl::GetFlag(FLAGS_input_image_path).empty();
-    if (load_image)
-    {
-      return ProcessImage(std::move(graph));
-    }
-    else
-    {
-      return absl::InvalidArgumentError("No se encontró la imagen especificada.");
-    }
+    return ProcessImage(std::move(graph), raw_image);
   }
 
   void reload()
@@ -347,7 +351,10 @@ int main(int argc, char **argv)
   winnerPy::WnrDaemon &daemon = winnerPy::WnrDaemon::instance();
   daemon.setReloadFunction(reload);
   int last_msg_id = 0;
-  int shmid = shmget(winnerPy::IMG_SHM_KEY, sizeof(winnerPy::datos_imagen),0666|IPC_CREAT);
+  LOG(INFO) << "Iniciando demonio.";
+  int shmid = shmget(winnerPy::IMG_SHM_KEY, sizeof(winnerPy::datos_imagen), 0666|IPC_CREAT);
+  LOG(INFO) << "Se comparte memoria de tamaño: " << sizeof(winnerPy::datos_imagen); 
+  // int shmid = shmget(winnerPy::IMG_SHM_KEY, sizeof(winnerPy::datos_imagen),0666|IPC_CREAT);
 
   while (daemon.IsRunning())
   {
@@ -360,10 +367,31 @@ int main(int argc, char **argv)
       continue;
 		}
 
+    LOG(INFO) << "Tamaño de la imagen: " << datos->img_size;
+    int array_size = (datos->img_size * sizeof(char));
+    LOG(INFO) << "Tamaño de la imagen array_size: " << array_size;
+
+    // LOG(INFO) << "imagen: " << datos->imagen << std::endl;
+
+    std::string raw_image = "";
+    raw_image.resize(array_size);
+    raw_image.clear();
+    for (int i = 1; i <= array_size; i++)
+    {
+      raw_image += datos->imagen[i];
+    }
+
+
+    LOG(INFO) << "Tamaño de raw_image: " << raw_image.size();
+    // raw_image.assign(datos->imagen_string.begin(), datos->imagen_string.size());
+    // datos->imagen_string.copy(raw_image, datos->imagen_string.size(), 0);
+    // const std::string raw_image(datos->imagen_string.begin(), datos->imagen_string.end());
+    LOG(INFO) << "Se copia la imagen en la memoria compartida.";
+        
     if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
 			last_msg_id = datos->msg_id;
 			try {
-        absl::Status run_status = RunMPPGraph();
+        absl::Status run_status = RunMPPGraph(raw_image);
         if (!run_status.ok())
         {
           LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
