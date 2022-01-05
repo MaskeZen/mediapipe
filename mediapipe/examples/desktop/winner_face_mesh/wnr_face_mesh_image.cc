@@ -185,8 +185,11 @@ namespace
   absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph, std::string packet_image)
   {
     LOG(INFO) << "Se inicia el procesamiento de la imagen.";
-    ASSIGN_OR_RETURN(const std::string raw_image,
-                      ReturnString(packet_image));
+    // ASSIGN_OR_RETURN(const std::string raw_image,
+    //                   ReturnString(packet_image));
+
+    const std::string raw_image(packet_image);
+    // memccpy((const std::string raw_image), packet_image.data(), 0, packet_image.size());
 
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_face_geometry_poller,
                      graph->AddOutputStreamPoller(kOutputFaceGeometry));
@@ -373,20 +376,68 @@ int main(int argc, char **argv)
 
     // LOG(INFO) << "imagen: " << datos->imagen << std::endl;
 
-    std::string raw_image = "";
-    raw_image.resize(array_size);
-    raw_image.clear();
-    for (int i = 1; i <= array_size; i++)
-    {
-      raw_image += datos->imagen[i];
-    }
+    // std::string raw_image = "";
+    // raw_image.resize(array_size);
+    // raw_image.clear();
+    // for (int i = 1; i <= array_size; i++)
+    // {
+    //   raw_image += datos->imagen[i];
+    // }
+
+    
 
 
-    LOG(INFO) << "Tamaño de raw_image: " << raw_image.size();
+    // LOG(INFO) << "Tamaño de raw_image: " << raw_image.size();
     // raw_image.assign(datos->imagen_string.begin(), datos->imagen_string.size());
     // datos->imagen_string.copy(raw_image, datos->imagen_string.size(), 0);
     // const std::string raw_image(datos->imagen_string.begin(), datos->imagen_string.end());
     LOG(INFO) << "Se copia la imagen en la memoria compartida.";
+
+    // std::string& ref_raw_image = raw_image;
+    // const std::vector<char> contents_vector(ref_raw_image.begin(), ref_raw_image.end());
+    // cv::Mat decoded_mat;
+    const std::vector<char> contents_vector(std::begin(datos->imagen), std::end(datos->imagen));
+    cv::Mat decoded_mat;
+    
+    // decoded_mat = cv::imdecode(contents_vector,
+    //                             cv::IMREAD_ANYCOLOR | cv::IMREAD_ANYDEPTH);
+    // Return the loaded image as-is
+    decoded_mat = cv::imdecode(contents_vector, cv::IMREAD_UNCHANGED);
+
+    cv::imshow("imagen decoded_mat", decoded_mat);
+    cv::waitKey(0);
+
+    std::string raw_image(decoded_mat.begin<unsigned char>(), decoded_mat.end<unsigned char>());
+
+    mediapipe::ImageFormat::Format image_format = mediapipe::ImageFormat::UNKNOWN;
+    cv::Mat output_mat;
+    switch (decoded_mat.channels()) {
+      case 1:
+        LOG(INFO) << "case 1: Imagen en escala de grises.";
+        image_format = mediapipe::ImageFormat::GRAY8;
+        output_mat = decoded_mat;
+        break;
+      case 3:
+        LOG(INFO) << "case 3: Se convierte la imagen a BGR.";
+        image_format = mediapipe::ImageFormat::SRGB;
+        cv::cvtColor(decoded_mat, output_mat, cv::COLOR_BGR2RGB);
+        break;
+      case 4:
+        LOG(INFO) << "case 4: Image has alpha channel.";
+        image_format = mediapipe::ImageFormat::SRGBA;
+        cv::cvtColor(decoded_mat, output_mat, cv::COLOR_BGR2RGBA);
+        break;
+      default:
+        LOG(ERROR) << "Unsupported number of channels: " << decoded_mat.channels();
+    }
+    std::unique_ptr<mediapipe::ImageFrame> output_frame = absl::make_unique<mediapipe::ImageFrame>(
+        image_format, decoded_mat.size().width, decoded_mat.size().height,
+        mediapipe::ImageFrame::kGlDefaultAlignmentBoundary);
+    output_mat.copyTo(mediapipe::formats::MatView(output_frame.get()));
+
+    
+    cv::imshow("imagen recibida", output_mat);
+    cv::waitKey(0);
         
     if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
 			last_msg_id = datos->msg_id;
