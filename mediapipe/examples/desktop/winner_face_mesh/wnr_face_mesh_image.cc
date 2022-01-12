@@ -129,8 +129,13 @@ namespace
   
   absl::StatusOr<std::string> ReturnString(std::string packet_image)
   {
-    std::string contents = packet_image;
-    return contents;
+    LOG(INFO) << ">>>>>>>>>>>>>> INICIA memcpy.";
+    char contents[packet_image.size()];
+    strcpy(contents, packet_image.data());
+    LOG(INFO) << ">>>>>>>>>>>>>> FIN memcpy.";
+
+    std::string resultString(contents);
+    return resultString;
   }
 
   // Chequea si es una rotationmatrix válida.
@@ -185,10 +190,10 @@ namespace
   absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph, std::string packet_image)
   {
     LOG(INFO) << "Se inicia el procesamiento de la imagen.";
-    // ASSIGN_OR_RETURN(const std::string raw_image,
-    //                   ReturnString(packet_image));
+    ASSIGN_OR_RETURN(std::string raw_image,
+                      ReturnString(packet_image));
 
-    const std::string raw_image(packet_image);
+    // const std::string raw_image(packet_image);
     // memccpy((const std::string raw_image), packet_image.data(), 0, packet_image.size());
 
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_face_geometry_poller,
