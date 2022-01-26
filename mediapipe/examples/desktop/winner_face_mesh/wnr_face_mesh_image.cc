@@ -39,6 +39,8 @@
 // shared memory
 #include <sys/shm.h>
 #include "wnr_msg_exchange.h"
+
+#include <zmq.hpp>
 // -----------------
 
 #include <Eigen/Geometry>
@@ -347,21 +349,42 @@ int main(int argc, char **argv)
   winnerPy::WnrDaemon &daemon = winnerPy::WnrDaemon::instance();
   daemon.setReloadFunction(reload);
   int last_msg_id = 0;
+
+  // Se reemplazaría la memoria compartida por ZMQ
   int shmid = shmget(winnerPy::IMG_SHM_KEY, sizeof(winnerPy::datos_imagen),0666|IPC_CREAT);
+  zmq::context_t context (2);
+  zmq::socket_t socket (context, zmq::socket_type::rep);
+  socket.bind ("tcp://*:5555");
 
   while (daemon.IsRunning())
   {
-    // Se lee de la memoria compartida
-		winnerPy::datos_imagen *datos = (winnerPy::datos_imagen*) shmat(shmid,(void*)0,0);
-		if (datos == (void*)-1) {
-			LOG(ERROR) << "No se pudo obtener la memoria compartida." << std::endl;
-		 	//return 1;
-      std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-      continue;
-		}
+    zmq::message_t request;
 
-    if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
-			last_msg_id = datos->msg_id;
+    //  Wait for next request from client
+    socket.recv (request, zmq::recv_flags::none);
+
+    
+    std::cout << "Received " << request.str() << std::endl;
+
+    //  Do some 'work'
+    sleep(1);
+
+    //  Send reply back to client
+    zmq::message_t reply (5);
+    memcpy (reply.data (), "World", 5);
+    socket.send (reply, zmq::send_flags::none);
+    
+    // // Se lee de la memoria compartida
+		// winnerPy::datos_imagen *datos = (winnerPy::datos_imagen*) shmat(shmid,(void*)0,0);
+		// if (datos == (void*)-1) {
+		// 	LOG(ERROR) << "No se pudo obtener la memoria compartida." << std::endl;
+		//  	//return 1;
+    //   std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    //   continue;
+		// }
+
+    // if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
+		// 	last_msg_id = datos->msg_id;
 			try {
         absl::Status run_status = RunMPPGraph();
         if (!run_status.ok())
@@ -377,9 +400,9 @@ int main(int argc, char **argv)
 			} catch  (const std::exception& e) {
 				LOG(ERROR) << e.what();
 			}
-		} else {
-      LOG(INFO) << "No hay nuevos mensajes.";
-    }
+		// } else {
+    //   LOG(INFO) << "No hay nuevos mensajes.";
+    // }
 
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
   }

@@ -215,6 +215,20 @@ new_local_repository(
     path = "C:\\opencv\\build",
 )
 
+new_local_repository(
+  name = "libzmq",
+  path = "third_party/libzmq/zeromq-4.3.4",
+  build_file = "third_party/libzmq/libzmq.BUILD"
+)
+
+http_archive(
+  name = "org_libsodium",
+  url = "https://github.com/jedisct1/libsodium/releases/download/1.0.17/libsodium-1.0.17.tar.gz",
+  sha256 = "0cc3dae33e642cc187b5ceb467e0ad0e1b51dcba577de1190e9ffa17766ac2b1",
+  strip_prefix = "libsodium-1.0.17",
+  build_file_content = all_content
+)
+
 http_archive(
     name = "android_opencv",
     build_file = "@//third_party:opencv_android.BUILD",

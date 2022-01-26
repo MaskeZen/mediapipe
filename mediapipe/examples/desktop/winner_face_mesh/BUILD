@@ -72,6 +72,8 @@ cc_binary(
         # "//mediapipe/graphs/winner_face_mesh:wnr_face_mesh_image_v2",
         "@com_google_absl//absl/flags:flag",
         "@com_google_absl//absl/flags:parse",
+        "@libzmq",
+        "//third_party:libsodium_configure"
     ],
 )
 
