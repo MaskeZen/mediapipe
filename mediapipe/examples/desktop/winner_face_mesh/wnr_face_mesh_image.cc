@@ -100,6 +100,8 @@ ABSL_FLAG(std::string, output_image_path, "",
 
 namespace
 {
+  std::string euler_angles = "";
+  winnerPy::datos_imagen* datos_imagen;
 
   void printEugerAnglesResult(cv::Vec3f eulerAngles, bool convertToDegrees = true)
   {
@@ -117,6 +119,11 @@ namespace
     }
 
     LOG(INFO) << " Pitch: " << pitch << " Yaw: " << yaw << " Roll: " << roll;
+    datos_imagen->pitch = pitch;
+    datos_imagen->yaw = yaw;
+    datos_imagen->roll = roll;
+    LOG(INFO) << " En datos_imagen -> ";
+    LOG(INFO) <<  " Pitch: " << datos_imagen->pitch << " Yaw: " << datos_imagen->yaw << " Roll: " << datos_imagen->roll;
   }
 
   absl::StatusOr<std::string> ReadFileToString(const std::string &file_path)
@@ -175,10 +182,12 @@ namespace
     return cv::Vec3f(x, y, z);
   }
 
-  absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph)
+  absl::Status ProcessImage(std::unique_ptr<mediapipe::CalculatorGraph> graph, std::string input_image_path)
   {
-    ASSIGN_OR_RETURN(const std::string raw_image,
-                     ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
+    // ASSIGN_OR_RETURN(const std::string raw_image,
+    //                  ReadFileToString(absl::GetFlag(FLAGS_input_image_path)));
+    LOG(INFO) << "Se leera el archivo: " << input_image_path;
+    ASSIGN_OR_RETURN(const std::string raw_image, ReadFileToString(input_image_path));
 
     ASSIGN_OR_RETURN(mediapipe::OutputStreamPoller output_face_geometry_poller,
                      graph->AddOutputStreamPoller(kOutputFaceGeometry));
@@ -304,7 +313,7 @@ namespace
     return graph->WaitUntilDone();
   }
 
-  absl::Status RunMPPGraph()
+  absl::Status RunMPPGraph(std::string input_image_path)
   {
     // Donde se lee la configuracion del graph
     std::string calculator_graph_config_contents;
@@ -325,7 +334,7 @@ namespace
     const bool load_image = !absl::GetFlag(FLAGS_input_image_path).empty();
     if (load_image)
     {
-      return ProcessImage(std::move(graph));
+      return ProcessImage(std::move(graph), input_image_path);
     }
     else
     {
@@ -363,16 +372,14 @@ int main(int argc, char **argv)
     //  Wait for next request from client
     socket.recv (request, zmq::recv_flags::none);
 
-    
-    std::cout << "Received " << request.str() << std::endl;
+
+    std::string image_path = request.to_string();    
+    std::cout << " mensaje recibido: " << image_path << std::endl;
 
     //  Do some 'work'
     sleep(1);
 
-    //  Send reply back to client
-    zmq::message_t reply (5);
-    memcpy (reply.data (), "World", 5);
-    socket.send (reply, zmq::send_flags::none);
+    
     
     // // Se lee de la memoria compartida
 		// winnerPy::datos_imagen *datos = (winnerPy::datos_imagen*) shmat(shmid,(void*)0,0);
@@ -386,7 +393,9 @@ int main(int argc, char **argv)
     // if (datos->msg_reply == 0 && datos->msg_id > last_msg_id) {
 		// 	last_msg_id = datos->msg_id;
 			try {
-        absl::Status run_status = RunMPPGraph();
+        datos_imagen = new winnerPy::datos_imagen;
+
+        absl::Status run_status = RunMPPGraph(image_path);
         if (!run_status.ok())
         {
           LOG(ERROR) << "Falló la ejecución del graph: " << run_status.message();
@@ -394,7 +403,13 @@ int main(int argc, char **argv)
         }
         else
         {
-          LOG(INFO) << "¡¡¡Éxito!!!";
+          std::string* msg_reply = new std::string(" Pitch: " + std::to_string(datos_imagen->pitch) 
+            + " Yaw: " + std::to_string(datos_imagen->yaw) + " Roll: " + std::to_string(datos_imagen->roll));
+          LOG(INFO) << "¡¡¡Éxito!!! -> " << (*msg_reply) << " size: " << msg_reply->size() << std::endl;
+          //  Send reply back to client
+          zmq::message_t reply (msg_reply->size());
+          memcpy (reply.data (), msg_reply->c_str(), msg_reply->size());
+          socket.send (reply, zmq::send_flags::none);
         }
 				
 			} catch  (const std::exception& e) {
